@@ -121,8 +121,8 @@ class HarnessRecovery:
                 action = audit.get("action", "")
                 resource_type = audit.get("resource", {}).get("type", "")
 
-                # Skip organization and project deletions
-                if resource_type.upper() in ["ORGANIZATION", "PROJECT"]:
+                # Skip organization deletions only
+                if resource_type.upper() in ["ORGANIZATION"]:
                     continue
 
                 # Skip ephemeral resources if requested
@@ -171,6 +171,8 @@ class HarnessRecovery:
                 return "connector"
             elif "secret" in data:
                 return "secret"
+            elif "project" in data:
+                return "project"
             # Check if it's a secret manager
             elif isinstance(data, dict):
                 # Check for secret manager types
@@ -344,6 +346,29 @@ class HarnessRecovery:
             print(f"✗ Failed to recreate template: {response.status_code} - {response.text}")
             return False
 
+    def recreate_project(self, yaml_content: str, org_id: str, project_id: str) -> bool:
+        """Recreate a project from YAML"""
+        url = f"{self.base_url}/ng/api/projects"
+
+        params = {
+            "accountIdentifier": self.account_id
+        }
+
+        if org_id:
+            params["orgIdentifier"] = org_id
+
+        headers = self.headers.copy()
+        headers["Content-Type"] = "application/yaml"
+
+        response = requests.post(url, headers=headers, params=params, data=yaml_content)
+
+        if response.status_code in [200, 201]:
+            print("✓ Project recreated successfully")
+            return True
+        else:
+            print(f"✗ Failed to recreate project: {response.status_code} - {response.text}")
+            return False
+
     def recreate_resource(self, audit: Dict[str, Any], dry_run: bool = False) -> bool:
         """Recreate a deleted resource"""
         audit_id = audit.get("auditId")
@@ -391,7 +416,8 @@ class HarnessRecovery:
             "environment": self.recreate_environment,
             "connector": self.recreate_connector,
             "template": self.recreate_template,
-            "secret": self.recreate_secret
+            "secret": self.recreate_secret,
+            "project": self.recreate_project
         }
 
         recreate_func = recreate_map.get(parsed_type)

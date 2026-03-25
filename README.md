@@ -5,8 +5,8 @@ CLI tool to recover and recreate deleted Harness resources from audit logs.
 ## Features
 
 - Fetches audit logs for a specified date range
-- Identifies deleted resources (pipelines, services, environments, connectors, templates)
-- **Skips organization and project deletions** (as requested)
+- Identifies deleted resources (pipelines, services, environments, connectors, templates, projects)
+- **Skips organization deletions** (projects can be recreated)
 - Retrieves YAML definitions from audit history
 - Recreates resources using Harness APIs
 - Supports dry-run mode to preview actions
@@ -99,14 +99,16 @@ python recover.py \
 
 The tool can recreate the following resource types:
 
+- **Projects** - Harness projects
 - **Pipelines** - CD/CI pipelines
 - **Services** - Service definitions
 - **Environments** - Environment definitions
 - **Connectors** - Cloud provider connectors, Git connectors, etc.
 - **Templates** - Pipeline, step, and stage templates
 - **Input Sets** - Pipeline input sets
+- **Secrets** - Secret references (recreated with placeholder values)
 
-**Note:** Organizations and Projects are intentionally skipped and will not be recreated.
+**Note:** Organizations are intentionally skipped and will not be recreated.
 
 ## How It Works
 
