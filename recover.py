@@ -199,22 +199,38 @@ class HarnessRecovery:
         """Recreate a pipeline from YAML"""
         url = f"{self.base_url}/pipeline/api/pipelines/v2"
 
-        params = {
-            "accountIdentifier": self.account_id,
-            "orgIdentifier": org_id,
-            "projectIdentifier": project_id
-        }
+        try:
+            # Parse YAML to extract scope
+            pipeline_data = yaml.safe_load(yaml_content)
 
-        headers = self.headers.copy()
-        headers["Content-Type"] = "application/yaml"
+            params = {
+                "accountIdentifier": self.account_id
+            }
 
-        response = requests.post(url, headers=headers, params=params, data=yaml_content)
+            # Extract org and project from YAML
+            if pipeline_data and "pipeline" in pipeline_data:
+                pipeline_obj = pipeline_data["pipeline"]
+                yaml_org = pipeline_obj.get("orgIdentifier")
+                yaml_project = pipeline_obj.get("projectIdentifier")
 
-        if response.status_code in [200, 201]:
-            print("✓ Pipeline recreated successfully")
-            return True
-        else:
-            print(f"✗ Failed to recreate pipeline: {response.status_code} - {response.text}")
+                if yaml_org:
+                    params["orgIdentifier"] = yaml_org
+                if yaml_project:
+                    params["projectIdentifier"] = yaml_project
+
+            headers = self.headers.copy()
+            headers["Content-Type"] = "application/yaml"
+
+            response = requests.post(url, headers=headers, params=params, data=yaml_content)
+
+            if response.status_code in [200, 201]:
+                print("✓ Pipeline recreated successfully")
+                return True
+            else:
+                print(f"✗ Failed to recreate pipeline: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            print(f"✗ Failed to process pipeline YAML: {e}")
             return False
 
     def recreate_service(self, yaml_content: str, org_id: str, project_id: str) -> bool:
@@ -289,28 +305,41 @@ class HarnessRecovery:
         """Recreate a secret from YAML with placeholder value"""
         url = f"{self.base_url}/ng/api/v2/secrets"
 
-        params = {
-            "accountIdentifier": self.account_id
-        }
-
-        if org_id:
-            params["orgIdentifier"] = org_id
-        if project_id:
-            params["projectIdentifier"] = project_id
-
         try:
             # Parse YAML and inject placeholder value
             secret_data = yaml.safe_load(yaml_content)
 
-            # Add placeholder value for secret text
+            # Extract scope from YAML itself
+            params = {
+                "accountIdentifier": self.account_id
+            }
+
             if secret_data and "secret" in secret_data:
                 secret_obj = secret_data["secret"]
+
+                # Extract org and project from YAML
+                yaml_org = secret_obj.get("orgIdentifier")
+                yaml_project = secret_obj.get("projectIdentifier")
+
+                if yaml_org:
+                    params["orgIdentifier"] = yaml_org
+                if yaml_project:
+                    params["projectIdentifier"] = yaml_project
+
+                # Add placeholder value for secret text
                 if secret_obj.get("type") == "SecretText":
                     if "spec" not in secret_obj:
                         secret_obj["spec"] = {}
                     # Set placeholder value - user must update this manually
                     secret_obj["spec"]["value"] = "PLACEHOLDER_UPDATE_MANUALLY"
                     print("⚠ Secret created with placeholder value - MUST be updated manually")
+                elif secret_obj.get("type") == "SSHKey":
+                    # SSH keys also need placeholder
+                    if "spec" not in secret_obj:
+                        secret_obj["spec"] = {}
+                    if "auth" not in secret_obj["spec"]:
+                        secret_obj["spec"]["auth"] = {}
+                    print("⚠ SSH Secret created - key references must be valid")
 
             # Convert back to YAML
             modified_yaml = yaml.dump(secret_data, default_flow_style=False)
@@ -334,48 +363,76 @@ class HarnessRecovery:
         """Recreate a template from YAML"""
         url = f"{self.base_url}/template/api/templates"
 
-        params = {
-            "accountIdentifier": self.account_id
-        }
+        try:
+            # Parse YAML to extract scope
+            template_data = yaml.safe_load(yaml_content)
 
-        if org_id:
-            params["orgIdentifier"] = org_id
-        if project_id:
-            params["projectIdentifier"] = project_id
+            params = {
+                "accountIdentifier": self.account_id
+            }
 
-        headers = self.headers.copy()
-        headers["Content-Type"] = "application/yaml"
+            # Extract org and project from YAML
+            if template_data and "template" in template_data:
+                template_obj = template_data["template"]
+                yaml_org = template_obj.get("orgIdentifier")
+                yaml_project = template_obj.get("projectIdentifier")
 
-        response = requests.post(url, headers=headers, params=params, data=yaml_content)
+                if yaml_org:
+                    params["orgIdentifier"] = yaml_org
+                if yaml_project:
+                    params["projectIdentifier"] = yaml_project
 
-        if response.status_code in [200, 201]:
-            print("✓ Template recreated successfully")
-            return True
-        else:
-            print(f"✗ Failed to recreate template: {response.status_code} - {response.text}")
+            headers = self.headers.copy()
+            headers["Content-Type"] = "application/yaml"
+
+            response = requests.post(url, headers=headers, params=params, data=yaml_content)
+
+            if response.status_code in [200, 201]:
+                print("✓ Template recreated successfully")
+                return True
+            else:
+                print(f"✗ Failed to recreate template: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            print(f"✗ Failed to process template YAML: {e}")
             return False
 
     def recreate_project(self, yaml_content: str, org_id: str, project_id: str) -> bool:
         """Recreate a project from YAML"""
         url = f"{self.base_url}/ng/api/projects"
 
-        params = {
-            "accountIdentifier": self.account_id
-        }
+        try:
+            # Parse YAML to extract scope
+            project_data = yaml.safe_load(yaml_content)
 
-        if org_id:
-            params["orgIdentifier"] = org_id
+            params = {
+                "accountIdentifier": self.account_id
+            }
 
-        headers = self.headers.copy()
-        headers["Content-Type"] = "application/yaml"
+            # Extract org from YAML
+            if project_data and "project" in project_data:
+                project_obj = project_data["project"]
+                yaml_org = project_obj.get("orgIdentifier")
 
-        response = requests.post(url, headers=headers, params=params, data=yaml_content)
+                if yaml_org:
+                    params["orgIdentifier"] = yaml_org
 
-        if response.status_code in [200, 201]:
-            print("✓ Project recreated successfully")
-            return True
-        else:
-            print(f"✗ Failed to recreate project: {response.status_code} - {response.text}")
+            headers = self.headers.copy()
+            headers["Content-Type"] = "application/yaml"
+
+            response = requests.post(url, headers=headers, params=params, data=yaml_content)
+
+            if response.status_code in [200, 201]:
+                print("✓ Project recreated successfully")
+                return True
+            elif response.status_code == 409 or "already exists" in response.text.lower():
+                print("⚠ Project already exists - skipping")
+                return True  # Treat as success since project exists
+            else:
+                print(f"✗ Failed to recreate project: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            print(f"✗ Failed to process project YAML: {e}")
             return False
 
     def recreate_resource(self, audit: Dict[str, Any], dry_run: bool = False) -> bool:
@@ -482,6 +539,23 @@ class HarnessRecovery:
         if resource_filter:
             deleted = [d for d in deleted if d.get("resource", {}).get("type", "").upper() == resource_filter.upper()]
             print(f"Filtered to {len(deleted)} resource(s) of type {resource_filter}\n")
+
+        # Sort resources by dependency order (projects first, pipelines last)
+        def resource_priority(audit):
+            resource_type = audit.get("resource", {}).get("type", "").upper()
+            priority_map = {
+                "PROJECT": 0,
+                "TEMPLATE": 1,
+                "SECRET": 2,
+                "CONNECTOR": 3,
+                "SERVICE": 4,
+                "ENVIRONMENT": 5,
+                "PIPELINE": 6,
+            }
+            return priority_map.get(resource_type, 99)
+
+        deleted = sorted(deleted, key=resource_priority)
+        print(f"Resources ordered by dependency (projects first, pipelines last)\n")
 
         # Recreate resources
         success_count = 0
