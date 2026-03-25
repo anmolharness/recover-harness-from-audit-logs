@@ -226,6 +226,9 @@ class HarnessRecovery:
             if response.status_code in [200, 201]:
                 print("✓ Pipeline recreated successfully")
                 return True
+            elif response.status_code == 409 or "already exists" in response.text.lower() or "duplicate" in response.text.lower():
+                print("⚠ Pipeline already exists - skipping")
+                return True  # Treat as success
             else:
                 print(f"✗ Failed to recreate pipeline: {response.status_code} - {response.text}")
                 return False
@@ -249,6 +252,9 @@ class HarnessRecovery:
         if response.status_code in [200, 201]:
             print("✓ Service recreated successfully")
             return True
+        elif response.status_code == 409 or "already exists" in response.text.lower() or "duplicate" in response.text.lower():
+            print("⚠ Service already exists - skipping")
+            return True  # Treat as success
         else:
             print(f"✗ Failed to recreate service: {response.status_code} - {response.text}")
             return False
@@ -269,6 +275,9 @@ class HarnessRecovery:
         if response.status_code in [200, 201]:
             print("✓ Environment recreated successfully")
             return True
+        elif response.status_code == 409 or "already exists" in response.text.lower() or "duplicate" in response.text.lower():
+            print("⚠ Environment already exists - skipping")
+            return True  # Treat as success
         else:
             print(f"✗ Failed to recreate environment: {response.status_code} - {response.text}")
             return False
@@ -294,6 +303,9 @@ class HarnessRecovery:
             if response.status_code in [200, 201]:
                 print("✓ Connector recreated successfully")
                 return True
+            elif response.status_code == 409 or "already exists" in response.text.lower() or "duplicate" in response.text.lower():
+                print("⚠ Connector already exists - skipping")
+                return True  # Treat as success
             else:
                 print(f"✗ Failed to recreate connector: {response.status_code} - {response.text}")
                 return False
@@ -352,6 +364,9 @@ class HarnessRecovery:
             if response.status_code in [200, 201]:
                 print("✓ Secret recreated successfully (with placeholder value)")
                 return True
+            elif response.status_code == 409 or "already exists" in response.text.lower() or "duplicate" in response.text.lower():
+                print("⚠ Secret already exists - skipping")
+                return True  # Treat as success
             else:
                 print(f"✗ Failed to recreate secret: {response.status_code} - {response.text}")
                 return False
@@ -390,6 +405,9 @@ class HarnessRecovery:
             if response.status_code in [200, 201]:
                 print("✓ Template recreated successfully")
                 return True
+            elif response.status_code == 409 or "already exists" in response.text.lower() or "duplicate" in response.text.lower():
+                print("⚠ Template already exists - skipping")
+                return True  # Treat as success
             else:
                 print(f"✗ Failed to recreate template: {response.status_code} - {response.text}")
                 return False
