@@ -41,7 +41,7 @@ class HarnessRecovery:
         self.headers = self.headers_api_key
 
     def get_audit_logs(self, start_time: int, end_time: int, page: int = 0, page_size: int = 100) -> Dict[str, Any]:
-        """Fetch audit logs for the given time range"""
+        """Fetch audit logs for the given time range, filtered for DELETE actions only"""
         url = f"{self.base_url}/gateway/audit/api/audits/list"
 
         params = {
@@ -52,9 +52,15 @@ class HarnessRecovery:
             "pageSize": page_size
         }
 
-        print(f"Fetching audit logs from {datetime.fromtimestamp(start_time/1000)} to {datetime.fromtimestamp(end_time/1000)}...")
+        # Request body with filter for DELETE actions only
+        body = {
+            "filterType": "Audit",
+            "actions": ["DELETE"]
+        }
 
-        response = requests.post(url, headers=self.headers, params=params)
+        print(f"Fetching deleted resources from {datetime.fromtimestamp(start_time/1000)} to {datetime.fromtimestamp(end_time/1000)}...")
+
+        response = requests.post(url, headers=self.headers, params=params, json=body)
         response.raise_for_status()
 
         return response.json()
@@ -118,7 +124,6 @@ class HarnessRecovery:
                 break
 
             for audit in content:
-                action = audit.get("action", "")
                 resource_type = audit.get("resource", {}).get("type", "")
 
                 # Skip organization deletions only
@@ -133,10 +138,9 @@ class HarnessRecovery:
                 if resource_types_filter and resource_type.upper() not in [rt.upper() for rt in resource_types_filter]:
                     continue
 
-                # Check for DELETE actions
-                if action == "DELETE":
-                    deleted_resources.append(audit)
-                    print(f"Found deleted {resource_type}: {audit.get('resource', {}).get('identifier', 'N/A')}")
+                # All results are already DELETE actions (filtered at API level)
+                deleted_resources.append(audit)
+                print(f"Found deleted {resource_type}: {audit.get('resource', {}).get('identifier', 'N/A')}")
 
             # Check if there are more pages
             if data.get("pageIndex", 0) >= data.get("totalPages", 1) - 1:
