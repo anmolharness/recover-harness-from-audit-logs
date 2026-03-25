@@ -94,7 +94,8 @@ class HarnessRecovery:
 
     def find_deleted_resources(self, start_date: str, end_date: str,
                                 skip_ephemeral: bool = True,
-                                resource_types_filter: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+                                resource_types_filter: Optional[List[str]] = None,
+                                exclude_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Find all deleted resources in the given date range"""
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
@@ -132,6 +133,10 @@ class HarnessRecovery:
 
                 # Skip ephemeral resources if requested
                 if skip_ephemeral and resource_type.upper() in ephemeral_types:
+                    continue
+
+                # Skip excluded resource types if provided
+                if exclude_types and resource_type.upper() in [et.upper() for et in exclude_types]:
                     continue
 
                 # Filter by specific resource types if provided
@@ -434,7 +439,8 @@ class HarnessRecovery:
 
     def recover_all(self, start_date: str, end_date: str, dry_run: bool = False,
                     resource_filter: Optional[str] = None, include_ephemeral: bool = False,
-                    only_core_resources: bool = False, save_metadata: Optional[str] = None):
+                    only_core_resources: bool = False, save_metadata: Optional[str] = None,
+                    exclude_types: Optional[List[str]] = None):
         """Main recovery function"""
         print(f"\n{'=' * 60}")
         print(f"Harness Resource Recovery Tool")
@@ -446,6 +452,8 @@ class HarnessRecovery:
             print(f"Skipping: Delegates and Tokens (use --include-ephemeral to include)")
         if only_core_resources:
             print(f"Filtering: Pipelines, Services, Environments, Connectors, and Secrets only")
+        if exclude_types:
+            print(f"Excluding: {', '.join(exclude_types)}")
         if not self.session_token:
             print(f"⚠  No session token - YAML retrieval will be skipped")
             print(f"   Use --session-token to provide browser JWT for YAML access")
@@ -459,7 +467,8 @@ class HarnessRecovery:
         # Find deleted resources
         deleted = self.find_deleted_resources(start_date, end_date,
                                                skip_ephemeral=not include_ephemeral,
-                                               resource_types_filter=resource_types_filter)
+                                               resource_types_filter=resource_types_filter,
+                                               exclude_types=exclude_types)
 
         if not deleted:
             print("\n✓ No deleted resources found in the specified date range")
@@ -592,6 +601,12 @@ def main():
         help="Save deleted resources metadata to JSON file"
     )
 
+    parser.add_argument(
+        "--exclude-types",
+        nargs="+",
+        help="Exclude specific resource types (e.g., ROLE RESOURCE_GROUP)"
+    )
+
     args = parser.parse_args()
 
     # Validate date format
@@ -605,7 +620,8 @@ def main():
     # Create recovery instance and run
     recovery = HarnessRecovery(args.api_key, args.account_id, args.base_url, args.session_token)
     recovery.recover_all(args.start_date, args.end_date, args.dry_run, args.resource_type,
-                         args.include_ephemeral, args.only_core, args.save_metadata)
+                         args.include_ephemeral, args.only_core, args.save_metadata,
+                         args.exclude_types)
 
 
 if __name__ == "__main__":
