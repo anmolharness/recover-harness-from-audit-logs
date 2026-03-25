@@ -23,13 +23,25 @@ pip install -r requirements.txt
 
 ### Basic Usage
 
+**Important:** You need both an API key AND a session token for full recovery.
+
 ```bash
 python recover.py \
   --api-key YOUR_API_KEY \
   --account-id YOUR_ACCOUNT_ID \
   --start-date 2026-01-01 \
-  --end-date 2026-03-25
+  --end-date 2026-03-25 \
+  --session-token 'YOUR_SESSION_TOKEN'
 ```
+
+**How to get the session token:**
+1. Open your browser and log into Harness
+2. Open Developer Tools (F12)
+3. Go to the Network tab
+4. Navigate to any page in Harness
+5. Find any API request in the network log
+6. Copy the `Authorization: Bearer eyJ0...` token value
+7. Use that token with `--session-token`
 
 ### Dry Run (Preview Only)
 
@@ -39,6 +51,7 @@ python recover.py \
   --account-id YOUR_ACCOUNT_ID \
   --start-date 2026-03-01 \
   --end-date 2026-03-25 \
+  --session-token 'YOUR_SESSION_TOKEN' \
   --dry-run
 ```
 
@@ -50,6 +63,7 @@ python recover.py \
   --account-id YOUR_ACCOUNT_ID \
   --start-date 2026-03-01 \
   --end-date 2026-03-25 \
+  --session-token 'YOUR_SESSION_TOKEN' \
   --resource-type PIPELINE
 ```
 
@@ -58,10 +72,12 @@ python recover.py \
 ```bash
 export HARNESS_API_KEY=$(cat ~/.harness_token)
 export HARNESS_ACCOUNT_ID="your-account-id"
+export HARNESS_SESSION_TOKEN="eyJ0eXAiOiJKV1Q..."
 
 python recover.py \
   --api-key $HARNESS_API_KEY \
   --account-id $HARNESS_ACCOUNT_ID \
+  --session-token $HARNESS_SESSION_TOKEN \
   --start-date 2026-03-01 \
   --end-date 2026-03-25
 ```
@@ -70,8 +86,9 @@ python recover.py \
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `--api-key` | Yes | Harness API key |
+| `--api-key` | Yes | Harness API key (for audit log access) |
 | `--account-id` | Yes | Harness account ID |
+| `--session-token` | Yes | Browser session token (for YAML retrieval) |
 | `--start-date` | Yes | Start date in YYYY-MM-DD format |
 | `--end-date` | Yes | End date in YYYY-MM-DD format |
 | `--dry-run` | No | Preview actions without recreating resources |
@@ -93,11 +110,15 @@ The tool can recreate the following resource types:
 
 ## How It Works
 
-1. **Fetch Audit Logs** - Retrieves all audit events in the specified date range
+1. **Fetch Audit Logs** - Retrieves all audit events in the specified date range using API key
 2. **Filter Deletions** - Identifies DELETE actions (excluding orgs/projects)
-3. **Retrieve YAML** - Fetches the YAML definition from audit history
+3. **Retrieve YAML** - Fetches the YAML definition from audit history using session token
 4. **Parse Resource Type** - Determines the type of resource from YAML structure
 5. **Recreate** - Calls the appropriate Harness API endpoint to recreate the resource
+
+**Note:** Both API key and session token are required:
+- **API Key**: For listing audit logs
+- **Session Token**: For retrieving YAML definitions (this endpoint requires browser authentication)
 
 ## Example Output
 
